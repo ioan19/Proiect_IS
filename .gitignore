@@ -1,0 +1,14 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+.env
+
+# Frontend (React)
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# Altele
+.DS_Store
+.vscode/
