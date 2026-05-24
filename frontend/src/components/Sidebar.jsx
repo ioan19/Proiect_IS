@@ -1,7 +1,10 @@
-import { useLocation, Link } from 'react-router-dom'
+import { useLocation, Link, useNavigate } from 'react-router-dom'
+import { useAuthContext } from '../context/AuthContext'
 
 export default function Sidebar() {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { user, logout } = useAuthContext()
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: '📊' },
@@ -10,6 +13,11 @@ export default function Sidebar() {
     { path: '/analytics', label: 'Analize', icon: '📈' },
     { path: '/settings', label: 'Setări', icon: '⚙️' },
   ]
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
+  }
 
   return (
     <aside className="w-80 bg-linear-to-b from-[#1e293b] to-[#0f172a] border-r border-slate-700 p-6 flex flex-col gap-8 sticky top-0 h-screen shadow-2xl">
@@ -45,12 +53,25 @@ export default function Sidebar() {
 
       <div className="border-t border-slate-700 pt-4 space-y-3">
         <div className="bg-slate-800/50 rounded-lg p-3">
-          <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Status</p>
-          <p className="flex items-center gap-2 text-sm font-medium">
+          <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">User</p>
+          <p className="text-sm font-medium text-slate-300">{user?.name}</p>
+          <p className="text-xs text-slate-600">{user?.email}</p>
+        </div>
+        
+        <div className="bg-slate-800/50 rounded-lg p-3">
+          <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2">Status</p>
+          <p className="flex items-center gap-2 text-sm font-medium mb-3">
             <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
             <span className="text-slate-300">Online</span>
           </p>
+          <button
+            onClick={handleLogout}
+            className="w-full px-3 py-2 bg-red-900/30 hover:bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm font-semibold transition"
+          >
+            Logout
+          </button>
         </div>
+        
         <p className="text-xs text-slate-600 text-center">© 2026 DroneMetrics</p>
       </div>
     </aside>
