@@ -1,3 +1,4 @@
+// frontend/src/components/ConfigSelector.jsx
 import { useState, useEffect } from 'react'
 import { useAnalyticsContext } from '../context/AnalyticsContext'
 
@@ -25,7 +26,8 @@ export default function ConfigSelector() {
     }
   }
 
-  const selectedConfig = configs.find(c => c.id === selectedConfigId)
+  // FIX 1 & 2: Safely convert both sides to strings to prevent type mismatch bugs (e.g., number vs string ID)
+  const selectedConfig = configs.find(c => String(c.id) === String(selectedConfigId))
   const filteredConfigs = configs.filter(c =>
     c.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
@@ -64,6 +66,7 @@ export default function ConfigSelector() {
                 <button
                   key={config.id}
                   onClick={() => {
+                    // Properly updates the state holding the selectedConfig via Context
                     setSelectedConfigId(config.id)
                     setIsOpen(false)
                     setSearchTerm('')

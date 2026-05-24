@@ -1,3 +1,4 @@
+// frontend/src/components/KPIDashboard.jsx
 import { useEffect, useState } from 'react'
 import { useAnalyticsContext } from '../context/AnalyticsContext'
 
@@ -21,7 +22,7 @@ export default function KPIDashboard() {
       if (selectedConfigId) {
         const configRes = await fetch(`http://localhost:8000/api/configuration-analysis/${selectedConfigId}`)
         const configResp = await configRes.json()
-        setConfigData(configResp.data)
+        setConfigData(configResp.data || configResp)
       }
     } catch (error) {
       console.error('Error fetching KPI data:', error)
@@ -30,7 +31,7 @@ export default function KPIDashboard() {
     }
   }
 
-  const data = selectedConfigId && configData ? configData : globalData
+  const data = selectedConfigId ? configData : globalData
 
   if (loading) {
     return (
@@ -45,54 +46,59 @@ export default function KPIDashboard() {
     )
   }
 
-  // Fallback: no data available
   if (!data) {
     return (
       <div className="bg-slate-800/30 rounded-xl p-8 border border-slate-700 text-center">
-        <p className="text-slate-400">No data available</p>
+        <p className="text-slate-400">No data available for this configuration</p>
       </div>
     )
   }
 
+  const config = configData?.configuration || {}
+  const motorCountMap = { 'quad': 4, 'hexa': 6, 'octa': 8 }
+  const motorCount = motorCountMap[config.drone_type] || 4
+  // FIX 1: Calculate total_thrust from thrust_test (DB field is NULL) and motor count
+  const totalThrust = (configData?.thrust_test?.thrust_g || 0) * motorCount
+  
   const kpis = selectedConfigId && configData ? [
     {
-      label: 'Max Thrust',
-      value: (data.max_thrust || 0).toFixed(0),
+      label: 'Total Thrust',
+      value: totalThrust.toFixed(0),
       unit: 'g',
       icon: '⚡',
       color: 'from-yellow-600 to-yellow-700'
     },
     {
       label: 'T/W Ratio',
-      value: (data.tw_ratio || 0).toFixed(1),
+      value: (config.tw_ratio || 0).toFixed(1),
       unit: ':1',
       icon: '⚖️',
       color: 'from-purple-600 to-purple-700'
     },
     {
       label: 'Flight Time',
-      value: (data.flight_time_min || 0).toFixed(1),
+      value: (config.flight_time_min || 0).toFixed(1),
       unit: 'm',
       icon: '✈️',
       color: 'from-cyan-600 to-cyan-700'
     },
     {
       label: 'Max Speed',
-      value: (data.max_speed_kmh || 0).toFixed(1),
+      value: (configData.max_speed_kmh || 0).toFixed(1),
       unit: 'km/h',
       icon: '🚀',
       color: 'from-red-600 to-red-700'
     },
     {
       label: 'Total Price',
-      value: (data.total_price || 0).toFixed(0),
+      value: (config.total_price || 0).toFixed(0),
       unit: '$',
       icon: '💰',
       color: 'from-emerald-600 to-emerald-700'
     },
     {
       label: 'Total Weight',
-      value: (data.total_weight_g || 0).toFixed(0),
+      value: (config.total_weight_g || 0).toFixed(0),
       unit: 'g',
       icon: '⚙️',
       color: 'from-blue-600 to-blue-700'

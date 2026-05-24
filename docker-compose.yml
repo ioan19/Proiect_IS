@@ -13,7 +13,8 @@ services:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # AICI E MODIFICAREA
+      # AICI E MODIFICAREA CORECTA:
+      - ./init.sql:/docker-entrypoint-initdb.d
 
 volumes:
   db_data:

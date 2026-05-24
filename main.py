@@ -19,22 +19,27 @@ class DecimalEncoder(json.JSONEncoder):
             return float(obj)
         return super().default(obj)
 
-# CORS Configuration
+# CORS Configuration (include 5174 for Vite dev server fallback; also supports 5173)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=[
+        "http://localhost:5173", "http://127.0.0.1:5173",
+        "http://localhost:5174", "http://127.0.0.1:5174"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Database configuration
+# Database configuration (use environment variables for security; fallback to defaults for local dev)
+import os
+
 DB_CONFIG = {
-    "dbname": "dronemetrics",
-    "user": "admin",
-    "password": "password123",
-    "host": "localhost",
-    "port": "5432"
+    "dbname": os.getenv("DM_DBNAME", "dronemetrics"),
+    "user": os.getenv("DM_DBUSER", "admin"),
+    "password": os.getenv("DM_DBPASS", "password123"),
+    "host": os.getenv("DM_DBHOST", "localhost"),
+    "port": os.getenv("DM_DBPORT", "5432")
 }
 
 def get_db_connection():
@@ -145,6 +150,10 @@ class DroneCalculator:
             total_power_w = power_per_motor * motor_count
             
             # Flight time = battery energy / power consumption * 0.8 (reserve)
+            # Guard against division by zero: if power is 0 or negative, return safe fallback
+            if total_power_w <= 0:
+                return 0
+            
             flight_time_hours = (battery_energy_wh / total_power_w) * 0.8
             flight_time_minutes = flight_time_hours * 60
             
@@ -157,21 +166,25 @@ class DroneCalculator:
     def calculate_max_speed(motor_kv: int, battery_cells: int, prop_diameter_inches: float) -> float:
         """
         Calculate theoretical maximum speed in km/h
-        Based on motor KV, battery voltage, and propeller diameter
+        Based on estimated pitch speed and loaded RPM, factoring in aerodynamic drag
         """
         try:
-            voltage_nominal = battery_cells * 3.7
             voltage_max = battery_cells * 4.2  # Fully charged LiPo
             
-            # Max RPM at full throttle
-            max_rpm = motor_kv * voltage_max * 0.95  # 95% efficiency factor
+
+            loaded_rpm = motor_kv * voltage_max * 0.75
             
-            # Linear speed = RPM * circumference / 1000 (to get m/s then km/h)
-            prop_circumference_mm = math.pi * (prop_diameter_inches * 2.54 * 10)
-            speed_ms = (max_rpm * prop_circumference_mm) / (60 * 1000)
-            speed_kmh = speed_ms * 3.6
+            estimated_pitch_inches = prop_diameter_inches * 0.8
             
-            return round(speed_kmh, 1)
+           
+            theoretical_speed_kmh = loaded_rpm * estimated_pitch_inches * 0.001524
+            
+          
+            aerodynamic_efficiency = 0.75
+            
+            real_speed_kmh = theoretical_speed_kmh * aerodynamic_efficiency
+            
+            return round(real_speed_kmh, 1)
         except:
             return 0
     
@@ -492,6 +505,11 @@ def optimize_drone(req: DroneRequest):
         cursor.execute(query, (voltage, req.frame_size_inches))
         results = cursor.fetchall()
         
+        # If no exact match, try to find propellers <= frame size (relaxed match)
+        if not results:
+            relaxed_query = query.replace("p.diameter_inches = %s", "p.diameter_inches <= %s")
+            cursor.execute(relaxed_query, (voltage, req.frame_size_inches))
+        
         valid_configs = []
         unique_combos = set()
         
@@ -642,6 +660,8 @@ def optimize_drone(req: DroneRequest):
 def save_configuration(config: ConfigurationSave):
     """Save drone configuration to database"""
     conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=500, detail="Database connection failed")
     cursor = conn.cursor()
     try:
         cursor.execute("""
@@ -676,6 +696,8 @@ def save_configuration(config: ConfigurationSave):
 def get_configurations(limit: int = 20):
     """Get saved configurations"""
     conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=500, detail="Database connection failed")
     cursor = conn.cursor()
     try:
         cursor.execute("""
@@ -693,6 +715,8 @@ def get_configurations(limit: int = 20):
 def get_analytics():
     """Get comprehensive analytics"""
     conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=500, detail="Database connection failed")
     cursor = conn.cursor()
     try:
         cursor.execute("SELECT COUNT(*) as total FROM configurations")
@@ -741,6 +765,8 @@ def get_analytics():
 def get_configuration_analysis(config_id: int):
     """Get detailed analysis for a configuration including range and motor performance"""
     conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=500, detail="Database connection failed")
     cursor = conn.cursor()
     try:
         # Get configuration details
