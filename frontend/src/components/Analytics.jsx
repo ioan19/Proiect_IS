@@ -19,6 +19,15 @@ export default function Analytics() {
     setConfigMeta(null);
   }, [selectedConfigId]);
 
+  // Wake up Recharts ResponsiveContainer after charts mount (React 19 StrictMode workaround)
+  useEffect(() => {
+    if (!chartsGenerated) return;
+    const timers = [50, 150, 400].map((delay) =>
+      setTimeout(() => window.dispatchEvent(new Event('resize')), delay)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [chartsGenerated]);
+
   // Load config metadata for the badge when a config is selected
   useEffect(() => {
     if (!selectedConfigId) { setConfigMeta(null); return; }
@@ -170,10 +179,10 @@ export default function Analytics() {
 
               {/* Charts grid — CRITICAL: each chart already has its own h-[400px] min-w-0 wrapper */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <ThrustChart configId={selectedConfigId} />
-                <FlightTimeChart configId={selectedConfigId} />
-                <TemperatureChart />
-                <ThrustToWeightChart />
+                <ThrustChart key={`thrust-${selectedConfigId}`} configId={selectedConfigId} />
+                <FlightTimeChart key={`flight-${selectedConfigId}`} configId={selectedConfigId} />
+                <TemperatureChart key={`temp-${selectedConfigId}`} />
+                <ThrustToWeightChart key={`tw-${selectedConfigId}`} />
               </div>
             </>
           )}

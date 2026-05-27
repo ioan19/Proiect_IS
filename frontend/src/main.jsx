@@ -18,7 +18,5 @@ function AppWithProviders() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <AppWithProviders />
-  </React.StrictMode>,
+  <AppWithProviders />,
 )
