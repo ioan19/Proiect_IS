@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "PowerShell(& \"c:\\\\Proiecte\\\\Proiect IS\\\\venv\\\\Scripts\\\\python.exe\" \"c:\\\\Proiecte\\\\Proiect IS\\\\main.py\")"
-    ]
-  }
-}
